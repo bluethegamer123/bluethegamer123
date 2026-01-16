@@ -1,23 +1,17 @@
 
 <h1 align="center"><b>Selam Ben bluethedeveloper</b></h1>
-
-
+<p align="left"> <img src="https://komarev.com/ghpvc/?username=bluethegamer123&label=Profile%20views&color=0e75b6&style=flat" alt="bluethegamer123" /> </p>
+<h1>Hakkımda</h1>
 <br>
 
-
-**Hakkımda*
-
-<picture> <img align="right" src="https://github.com/0xAbdulKhalid/0xAbdulKhalid/raw/main/assets/mdImages/Right_Side.gif" width = 250px></picture>
-
-<br>
-
-- A passionate Self-taught Front-end developer
-- Playing CTF's at spare time
-- Currently learning Web Development by Self
-- Personal website [link](https://www.0xabdulkhalid.ml)
-- I’m currently open for an Intern or a new job opportunity, this is [my resume](https://read.cv/0xabdulkhalid)
+- Oyun yazılım
+- [Website](https://blxdevs.vercel.app) yazılım
+- Sunucu Kodlama
+- Plugin kodlama         <a style="margin-left: 10px;"  target="_blank" href="https://www.linkedin.com/in/saurabhmchavan/">
+			<img src="https://img.icons8.com/doodle/40/000000/linkedin--v2.png"></a>(1.21.4)
 
 <br><br>
+<a href="https://dev.to/100rabhcsmc/instagram-profile-picture-download-using-python-n2j" title="ResimLink - Resim Yükle"><img src="https://r.resimlink.com/SOdnJDguZ.png" title="ResimLink - Resim Yükle" alt="ResimLink - Resim Yükle"></a>
 
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif"><br><br>
 
