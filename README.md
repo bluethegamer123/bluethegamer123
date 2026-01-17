@@ -42,4 +42,6 @@
 
 ###
 
+<img src="https://raw.githubusercontent.com/bluethegamer123/bluethegamer123/output/snake.svg" alt="Snake animation" />
+
 ###
