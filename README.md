@@ -59,6 +59,6 @@
 
 ###
 
-![snake gif](https://github.com/bluethegamer123/bluethegamer123/blob/output/github-contribution-grid-snake.gif)
+![snake gif](https://raw.githubusercontent.com/platane/snk/output/github-contribution-grid-snake.svg)
 
 ###
