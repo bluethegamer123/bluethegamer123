@@ -1,11 +1,9 @@
-name: Generate snake animation
+name: Generate Random Snake Animation
 
 on:
-  schedule: # execute every 12 hours
+  schedule:
     - cron: "* */12 * * *"
-
   workflow_dispatch:
-
   push:
     branches:
     - main
@@ -15,15 +13,44 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
-      - name: generate snake.svg
-        uses: Platane/snk/svg-only@v3
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: dist/snake.svg?palette=github-dark
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create Random SVG Script
+        run: |
+          cat << 'EOF' > generate-random-svg.js
+          const fs = require('fs');
+          
+          // 53 sütun, 7 satır (GitHub grafiği boyutlarında)
+          const width = 53 * 12;
+          const height = 7 * 12;
+          
+          let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+          svgContent += `<style> .bg { fill: #0d1117; } .empty { fill: #161b22; } .dot { fill: #238636; } </style>`;
+          svgContent += `<rect width="100%" height="100%" class="bg"/>`;
+
+          for (let x = 0; x < 53; x++) {
+            for (let y = 0; y < 7; y++) {
+              // %20 ihtimalle dolu (yeşil) kutu, %80 boş kutu oluşsun
+              const isFilled = Math.random() < 0.20; 
+              const className = isFilled ? 'dot' : 'empty';
+              svgContent += `<rect x="${x * 12 + 2}" y="${y * 12 + 2}" width="8" height="8" rx="2" ry="2" class="${className}"/>`;
+            }
+          }
+          
+          svgContent += `</svg>`;
+          
+          if (!fs.existsSync('dist')) fs.mkdirSync('dist');
+          fs.writeFileSync('dist/snake.svg', svgContent);
+          EOF
+          
+          node generate-random-svg.js
 
       - name: push snake.svg to the output branch
         uses: crazy-max/ghaction-github-pages@v3.1.0
