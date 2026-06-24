@@ -2,8 +2,10 @@ name: Generate Random Snake Animation
 
 on:
   schedule:
-    - cron: "* */12 * * *"
-  workflow_dispatch:
+    - cron: "* */12 * * *" # Her 12 saatte bir çalışır
+
+  workflow_dispatch: # Manuel tetikleme sağlar
+
   push:
     branches:
     - main
@@ -13,6 +15,8 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,35 +26,61 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Create Random SVG Script
+      - name: Generate Random Animated SVG
         run: |
-          cat << 'EOF' > generate-random-svg.js
+          cat << 'EOF' > generate-snake.js
           const fs = require('fs');
           
-          // 53 sütun, 7 satır (GitHub grafiği boyutlarında)
-          const width = 53 * 12;
-          const height = 7 * 12;
+          const cols = 53;
+          const rows = 7;
+          const size = 10;
+          const gap = 2;
+          const width = cols * (size + gap);
+          const height = rows * (size + gap);
           
-          let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
-          svgContent += `<style> .bg { fill: #0d1117; } .empty { fill: #161b22; } .dot { fill: #238636; } </style>`;
-          svgContent += `<rect width="100%" height="100%" class="bg"/>`;
+          let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+          
+          // CSS Animasyonları ve Renk Teması (GitHub Dark)
+          svg += `
+          <style>
+            rect { transform-origin: center; }
+            .bg { fill: #0d1117; }
+            .empty { fill: #161b22; }
+            .snake-dot { 
+              fill: #39d353; 
+              animation: pulse 2s infinite ease-in-out;
+            }
+            @keyframes pulse {
+              0%, 100% { fill: #26a641; opacity: 0.6; }
+              50% { fill: #39d353; opacity: 1; }
+            }
+          </style>
+          <rect width="100%" height="100%" class="bg"/>`;
 
-          for (let x = 0; x < 53; x++) {
-            for (let y = 0; y < 7; y++) {
-              // %20 ihtimalle dolu (yeşil) kutu, %80 boş kutu oluşsun
-              const isFilled = Math.random() < 0.20; 
-              const className = isFilled ? 'dot' : 'empty';
-              svgContent += `<rect x="${x * 12 + 2}" y="${y * 12 + 2}" width="8" height="8" rx="2" ry="2" class="${className}"/>`;
+          for (let x = 0; x < cols; x++) {
+            for (let y = 0; y < rows; y++) {
+              const posX = x * (size + gap);
+              const posY = y * (size + gap);
+              
+              // %15 ihtimalle rastgele yılan/yem yeşili kutu koy, kalanı boş gri olsun
+              const isSnake = Math.random() < 0.15;
+              const className = isSnake ? 'snake-dot' : 'empty';
+              
+              // Rastgele animasyon gecikmesi (kutuların aynı anda yanıp sönmemesi için)
+              const delay = (Math.random() * 2).toFixed(2);
+              const styleAttr = isSnake ? ` style="animation-delay: ${delay}s;"` : '';
+              
+              svg += `<rect x="${posX}" y="${posY}" width="${size}" height="${size}" rx="2" ry="2" class="${className}"${styleAttr}/>`;
             }
           }
           
-          svgContent += `</svg>`;
+          svg += `</svg>`;
           
           if (!fs.existsSync('dist')) fs.mkdirSync('dist');
-          fs.writeFileSync('dist/snake.svg', svgContent);
+          fs.writeFileSync('dist/snake.svg', svg);
           EOF
           
-          node generate-random-svg.js
+          node generate-snake.js
 
       - name: push snake.svg to the output branch
         uses: crazy-max/ghaction-github-pages@v3.1.0
