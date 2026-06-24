@@ -2,8 +2,8 @@ name: Generate Random Snake Animation
 
 on:
   schedule:
-    - cron: "* */12 * * *"
-  workflow_dispatch:
+    - cron: "* */12 * * *" # Her 12 saatte bir çalışır
+  workflow_dispatch: # Manuel tetikleme sağlar
   push:
     branches:
     - main
@@ -19,49 +19,82 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. ADIM: Yılanı kandırmak için rastgele veri üreten script
-      - name: Generate Random Data for Snake
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 1. ADIM: GitHub API'sini taklit eden ve rastgele kutu üreten yerel sunucu oluştur
+      - name: Start Fake GitHub API Server
         run: |
-          mkdir -p dist
-          cat << 'EOF' > generate-fake-data.js
-          const fs = require('fs');
-          // Yılan aksiyonunun gerçek veri yerine okuyabileceği sahte bir mock dosyası veya 
-          // ortam hazırlığı yapıyoruz. Ancak Platane/snk doğrudan GitHub API'sine bağlandığı için
-          // en temiz çözüm, yılan aksiyonuna gitmeden önce API yanıtını manipüle etmektir.
-          EOF
+          cat << 'EOF' > mock-server.js
+          const http = require('http');
           
-      # 2. ADIM: Orijinal hareket eden yılanı çalıştırıyoruz 
-      # (Kutuları rastgele algılaması için palette ve renk hilesi yapıyoruz)
+          const server = http.createServer((req, res) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            
+            // Yılan aksiyonunun istediği takvim verisini rastgele oluşturuyoruz
+            const contributions = [];
+            const today = new Date();
+            
+            // Son 1 yıl için (365 gün) rastgele katkı sayıları üretiyoruz
+            for (let i = 365; i >= 0; i--) {
+              const date = new Date(today);
+              date.setDate(today.getDate() - i);
+              const dateString = date.toISOString().split('T')[0];
+              
+              // %25 ihtimalle rastgele yoğunlukta (1-10 arası commit) yeşil kutu at, kalanı 0 (gri)
+              const count = Math.random() < 0.25 ? Math.floor(Math.random() * 10) + 1 : 0;
+              
+              contributions.push({
+                date: dateString,
+                count: count,
+                level: count === 0 ? 0 : Math.floor(Math.random() * 4) + 1
+              });
+            }
+            
+            // GitHub GraphQL API formatında yanıt dönüyoruz
+            const mockResponse = {
+              data: {
+                user: {
+                  contributionsCollection: {
+                    contributionCalendar: {
+                      weeks: []
+                    }
+                  }
+                }
+              }
+            };
+            
+            // Günleri haftalık bloklara böl
+            for (let i = 0; i < contributions.length; i += 7) {
+              mockResponse.data.user.contributionsCollection.contributionCalendar.weeks.push({
+                contributionDays: contributions.slice(i, i + 7)
+              });
+            }
+            
+            res.end(JSON.stringify(mockResponse));
+          });
+          
+          server.listen(4000, () => {
+            console.log('Fake GitHub API running on port 4000');
+          });
+          EOF
+          node mock-server.js &
+          sleep 2 # Sunucunun ayağa kalkması için bekle
+
+      # 2. ADIM: Orijinal yılan aksiyonunu çalıştır (Yerel sunucuyu dinlemesi için proxy ayarı ile)
       - name: generate snake.svg
         uses: Platane/snk/svg-only@v3
+        env:
+          # Yılan aksiyonunun gerçek GitHub yerine bizim hazırladığımız rastgele sunucuya gitmesini sağlıyoruz
+          GITHUB_API_URL: http://localhost:4000
         with:
           github_user_name: ${{ github.repository_owner }}
-          outputs: |
-            dist/snake.svg?palette=github-dark&color_snake=#39d353&color_dots=#161b22,#0e4429,#006d32,#26a641,#39d353
+          outputs: dist/snake.svg?palette=github-dark
 
-      # 3. ADIM: Yılanın bastığı yerleri SVG içinde rastgele konumlara dağıtan sihirli dokunuş
-      - name: Randomize SVG Boxes Custom Script
-        run: |
-          cat << 'EOF' > randomize.js
-          const fs = require('fs');
-          const file = 'dist/snake.svg';
-          if (fs.existsSync(file)) {
-            let svg = fs.readFileSync(file, 'utf8');
-            
-            // SVG içindeki sabit renkli kutuları bulup yerlerini rastgele karıştırıyoruz
-            // Böylece yılan eski yerinde hareket etmeye çalışırken tamamen rastgele dağılmış kutular görecek
-            svg = svg.replace(/matrix\((.*?)\)/g, () => {
-              const randomX = Math.floor(Math.random() * 50) * 12;
-              const randomY = Math.floor(Math.random() * 7) * 12;
-              return `matrix(1 0 0 1 ${randomX} ${randomY})`;
-            });
-            
-            fs.writeFileSync(file, svg);
-          }
-          EOF
-          node randomize.js
-
-      # 4. ADIM: Sonucu yükle
+      # 3. ADIM: Oluşan kusursuz animasyonu output branch'ine yükle
       - name: push snake.svg to the output branch
         uses: crazy-max/ghaction-github-pages@v3.1.0
         with:
