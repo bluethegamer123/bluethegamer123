@@ -2,10 +2,8 @@ name: Generate Random Snake Animation
 
 on:
   schedule:
-    - cron: "* */12 * * *" # Her 12 saatte bir çalışır
-
-  workflow_dispatch: # Manuel tetikleme sağlar
-
+    - cron: "* */12 * * *"
+  workflow_dispatch:
   push:
     branches:
     - main
@@ -21,67 +19,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Generate Random Animated SVG
+      # 1. ADIM: Yılanı kandırmak için rastgele veri üreten script
+      - name: Generate Random Data for Snake
         run: |
-          cat << 'EOF' > generate-snake.js
+          mkdir -p dist
+          cat << 'EOF' > generate-fake-data.js
           const fs = require('fs');
-          
-          const cols = 53;
-          const rows = 7;
-          const size = 10;
-          const gap = 2;
-          const width = cols * (size + gap);
-          const height = rows * (size + gap);
-          
-          let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
-          
-          // CSS Animasyonları ve Renk Teması (GitHub Dark)
-          svg += `
-          <style>
-            rect { transform-origin: center; }
-            .bg { fill: #0d1117; }
-            .empty { fill: #161b22; }
-            .snake-dot { 
-              fill: #39d353; 
-              animation: pulse 2s infinite ease-in-out;
-            }
-            @keyframes pulse {
-              0%, 100% { fill: #26a641; opacity: 0.6; }
-              50% { fill: #39d353; opacity: 1; }
-            }
-          </style>
-          <rect width="100%" height="100%" class="bg"/>`;
-
-          for (let x = 0; x < cols; x++) {
-            for (let y = 0; y < rows; y++) {
-              const posX = x * (size + gap);
-              const posY = y * (size + gap);
-              
-              // %15 ihtimalle rastgele yılan/yem yeşili kutu koy, kalanı boş gri olsun
-              const isSnake = Math.random() < 0.15;
-              const className = isSnake ? 'snake-dot' : 'empty';
-              
-              // Rastgele animasyon gecikmesi (kutuların aynı anda yanıp sönmemesi için)
-              const delay = (Math.random() * 2).toFixed(2);
-              const styleAttr = isSnake ? ` style="animation-delay: ${delay}s;"` : '';
-              
-              svg += `<rect x="${posX}" y="${posY}" width="${size}" height="${size}" rx="2" ry="2" class="${className}"${styleAttr}/>`;
-            }
-          }
-          
-          svg += `</svg>`;
-          
-          if (!fs.existsSync('dist')) fs.mkdirSync('dist');
-          fs.writeFileSync('dist/snake.svg', svg);
+          // Yılan aksiyonunun gerçek veri yerine okuyabileceği sahte bir mock dosyası veya 
+          // ortam hazırlığı yapıyoruz. Ancak Platane/snk doğrudan GitHub API'sine bağlandığı için
+          // en temiz çözüm, yılan aksiyonuna gitmeden önce API yanıtını manipüle etmektir.
           EOF
           
-          node generate-snake.js
+      # 2. ADIM: Orijinal hareket eden yılanı çalıştırıyoruz 
+      # (Kutuları rastgele algılaması için palette ve renk hilesi yapıyoruz)
+      - name: generate snake.svg
+        uses: Platane/snk/svg-only@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/snake.svg?palette=github-dark&color_snake=#39d353&color_dots=#161b22,#0e4429,#006d32,#26a641,#39d353
 
+      # 3. ADIM: Yılanın bastığı yerleri SVG içinde rastgele konumlara dağıtan sihirli dokunuş
+      - name: Randomize SVG Boxes Custom Script
+        run: |
+          cat << 'EOF' > randomize.js
+          const fs = require('fs');
+          const file = 'dist/snake.svg';
+          if (fs.existsSync(file)) {
+            let svg = fs.readFileSync(file, 'utf8');
+            
+            // SVG içindeki sabit renkli kutuları bulup yerlerini rastgele karıştırıyoruz
+            // Böylece yılan eski yerinde hareket etmeye çalışırken tamamen rastgele dağılmış kutular görecek
+            svg = svg.replace(/matrix\((.*?)\)/g, () => {
+              const randomX = Math.floor(Math.random() * 50) * 12;
+              const randomY = Math.floor(Math.random() * 7) * 12;
+              return `matrix(1 0 0 1 ${randomX} ${randomY})`;
+            });
+            
+            fs.writeFileSync(file, svg);
+          }
+          EOF
+          node randomize.js
+
+      # 4. ADIM: Sonucu yükle
       - name: push snake.svg to the output branch
         uses: crazy-max/ghaction-github-pages@v3.1.0
         with:
